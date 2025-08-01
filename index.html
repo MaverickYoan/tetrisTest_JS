@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestion Utilisateurs + Tetris</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="tetris/phaser.min.js"></script>
+  <script defer src="backend/main.js"></script>
+  <script defer src="tetris/tetris.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 30%;
+      background-color: #f4f4f4;
+      padding: 20px;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      overflow-y: auto;
+    }
+
+    .main-content {
+      flex-grow: 1;
+      background-color: #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    input,
+    button {
+      margin: 5px 0;
+      padding: 8px;
+      width: 100%;
+    }
+
+    .user-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .user-table th,
+    .user-table td {
+      padding: 6px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+
+    #tetris-game canvas {
+      border: 4px solid #fff;
+      box-shadow: 0 0 20px #0f0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Sidebar (CRUD / Auth) -->
+  <div class="sidebar">
+    <h2>Connexion</h2>
+    <input type="text" id="username" placeholder="Nom d'utilisateur" />
+    <input type="password" id="password" placeholder="Mot de passe" />
+    <button onclick="login()">Se connecter</button>
+    <button onclick="logout()">Se déconnecter</button>
+
+    <div id="user-actions" style="display:none;">
+      <h3>Ajouter un utilisateur</h3>
+      <input type="text" id="new-username" placeholder="Nom" />
+      <input type="password" id="new-password" placeholder="Mot de passe" />
+      <select id="new-role">
+        <option value="user">Utilisateur</option>
+        <option value="admin">Admin</option>
+      </select>
+      <button onclick="createUser()">Ajouter</button>
+
+      <h3>Liste des utilisateurs</h3>
+      <table class="user-table" id="user-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nom</th>
+            <th>Rôle</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tetris Frame -->
+  <div class="main-content">
+    <div id="tetris-game"></div>
+  </div>
+  <script src="tetris/phaser.min.js"></script>
+  <script src="tetris/tetris.js"></script>
+  <script src="backend/main.js"></script>
+
+  <div id="tetris-game"></div>
+
+</body>
+
+</html>
