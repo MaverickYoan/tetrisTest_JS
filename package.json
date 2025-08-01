@@ -1,1 +1,11 @@
-{}
+{
+    "name": "tetris",
+    "version": "1.0.0",
+    "description": "A simple Tetris game",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js"
+    },
+    "author": "MaverickYoan",
+    "license": "MIT"
+}
