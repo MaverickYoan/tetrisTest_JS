@@ -1,0 +1,579 @@
+Ignorer et passer au contenu
+Vous avez dit :
+Construire un site web qui contiendra une application de type crud pour la gestion des utilisateurs standard et admin lié à des base de données et tables pgadmin fonctionnelle avec l'ajout d'un cadre permettant de jouer à un jeu vidéo Tetris codé avec Phaser s'il te plait
+ChatGPT a dit :
+Éléments mémorisés mis à jour
+Voici une structure de projet complète pour construire un site web CRUD avec gestion des utilisateurs (standard/admin) connecté à une base PostgreSQL (via pgAdmin), et incluant un cadre de jeu Tetris en Phaser.
+
+🔧 Technologies utilisées
+Backend : Node.js (Express)
+
+Base de données : PostgreSQL (gérée via pgAdmin)
+
+Frontend : HTML/CSS/JS (Vanilla) + Phaser.js (pour le Tetris)
+
+ORM : Sequelize
+
+Authentification : JSON Web Token (JWT)
+
+📁 Structure du projet
+
+tetris-crud-app/
+│
+├── backend/
+│   ├── config/
+│   │   └── db.js               # Connexion PostgreSQL via Sequelize
+│   ├── controllers/
+│   │   └── userController.js
+│   ├── middleware/
+│   │   └── auth.js             # Vérification JWT et rôle
+│   ├── models/
+│   │   └── User.js
+│   ├── routes/
+│   │   └── users.js
+│   ├── app.js
+│   └── server.js
+│
+├── frontend/
+│   ├── index.html              # CRUD UI + cadre Tetris
+│   ├── style.css
+│   ├── main.js                 # Requête CRUD + Auth
+│   └── tetris/
+│       ├── tetris.js           # Code Phaser Tetris
+│       └── phaser.min.js
+│
+├── .env
+└── package.json
+
+🗄️ Base de données PostgreSQL
+Table users :
+
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(100) UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  role VARCHAR(10) DEFAULT 'user', -- 'user' or 'admin'
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+🚀 Démarrage rapide (Instructions)
+Backend (Node.js)
+
+cd backend
+npm init -y
+npm install express sequelize pg pg-hstore bcryptjs jsonwebtoken cors dotenv
+Crée les fichiers listés ci-dessus et configure .env :
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=your_db
+DB_USER=your_user
+DB_PASSWORD=your_password
+JWT_SECRET=your_secret_key
+Frontend
+
+index.html inclura un formulaire de connexion, un tableau des utilisateurs et un <iframe> ou <div> pour le jeu Tetris.
+
+Le jeu Tetris sera lancé dans un <div id="tetris-game"></div> via Phaser.
+
+🎮 Exemple d'intégration du jeu Tetris
+Dans frontend/tetris/tetris.js (Phaser 3) :
+
+const config = {
+  type: Phaser.AUTO,
+  width: 300,
+  height: 600,
+  backgroundColor: "#000",
+  scene: {
+    preload,
+    create,
+    update
+  }
+};
+
+let game = new Phaser.Game(config);
+
+function preload() {
+  // Load assets here
+}
+function create() {
+  // Create Tetris game here
+}
+function update() {
+  // Game loop
+}
+Dans index.html :
+
+<script src="tetris/phaser.min.js"></script>
+<script src="tetris/tetris.js"></script>
+<div id="tetris-game"></div>
+✅ Fonctions CRUD à intégrer
+Admin peut : créer, modifier, supprimer n'importe quel utilisateur.
+
+Utilisateur standard : seulement voir son profil.
+
+Auth via JWT (stockage token dans localStorage)
+
+Souhaites-tu que je te génère :
+
+Tous les fichiers backend prêt à l'emploi ?
+
+Le HTML complet avec le jeu Tetris ?
+
+Un fichier .sql d’import pour pgAdmin ?
+
+Indique-moi jusqu’où tu veux aller maintenant.
+
+Vous avez dit :
+Le HTML complet avec le jeu Tetris stp. 
+ChatGPT a dit :
+Voici le fichier HTML complet qui contient :
+
+Le design de la page (CRUD simplifié + connexion),
+
+Le cadre de jeu Tetris intégré avec Phaser 3 (dans un <div> séparé).
+
+✅ Fichier index.html (complet, autonome avec Tetris)
+Place ce fichier dans le dossier frontend/
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gestion Utilisateurs + Tetris</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="tetris/phaser.min.js"></script>
+  <script defer src="main.js"></script>
+  <script defer src="tetris/tetris.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 30%;
+      background-color: #f4f4f4;
+      padding: 20px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      overflow-y: auto;
+    }
+    .main-content {
+      flex-grow: 1;
+      background-color: #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    input, button {
+      margin: 5px 0;
+      padding: 8px;
+      width: 100%;
+    }
+    .user-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    .user-table th, .user-table td {
+      padding: 6px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    #tetris-game canvas {
+      border: 4px solid #fff;
+      box-shadow: 0 0 20px #0f0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar (CRUD / Auth) -->
+  <div class="sidebar">
+    <h2>Connexion</h2>
+    <input type="text" id="username" placeholder="Nom d'utilisateur" />
+    <input type="password" id="password" placeholder="Mot de passe" />
+    <button onclick="login()">Se connecter</button>
+    <button onclick="logout()">Se déconnecter</button>
+
+    <div id="user-actions" style="display:none;">
+      <h3>Ajouter un utilisateur</h3>
+      <input type="text" id="new-username" placeholder="Nom" />
+      <input type="password" id="new-password" placeholder="Mot de passe" />
+      <select id="new-role">
+        <option value="user">Utilisateur</option>
+        <option value="admin">Admin</option>
+      </select>
+      <button onclick="createUser()">Ajouter</button>
+
+      <h3>Liste des utilisateurs</h3>
+      <table class="user-table" id="user-table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Nom</th><th>Rôle</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tetris Frame -->
+  <div class="main-content">
+    <div id="tetris-game"></div>
+  </div>
+
+</body>
+</html>
+📦 Fichiers nécessaires
+Pour faire fonctionner ce HTML :
+
+tetris/phaser.min.js
+Télécharge depuis : https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js
+Place le fichier dans frontend/tetris/
+
+tetris/tetris.js (exemple simple de jeu Tetris)
+Souhaites-tu un code Tetris Phaser prêt à jouer que je t’intègre ici ?
+Je peux aussi l’optimiser pour clavier AZERTY si tu veux.
+
+main.js
+Gèrera la connexion API (login, fetch, CRUD) — je peux te le fournir ensuite.
+
+Souhaites-tu maintenant :
+
+le fichier tetris.js avec le jeu Tetris opérationnel ?
+
+ou veux-tu tester déjà l’interface HTML dans ton navigateur ?
+
+Vous avez dit :
+le fichier tetris.js avec le jeu Tetris opérationnel
+ChatGPT a dit :
+Voici un fichier tetris.js fonctionnel pour Phaser 3, avec un Tetris classique, minimaliste. Il s’intègre directement avec le <div id="tetris-game"></div> du fichier index.html que tu as déjà.
+
+🎮 Fichier tetris.js (dans frontend/tetris/)
+const config = {
+  type: Phaser.AUTO,
+  width: 240,
+  height: 400,
+  parent: 'tetris-game',
+  backgroundColor: '#000',
+  scene: {
+    preload,
+    create,
+    update
+  }
+};
+
+const game = new Phaser.Game(config);
+
+const COLS = 10;
+const ROWS = 20;
+const BLOCK_SIZE = 24;
+const SHAPES = [
+  [[1, 1, 1, 1]], // I
+  [[1, 1], [1, 1]], // O
+  [[0, 1, 0], [1, 1, 1]], // T
+  [[1, 1, 0], [0, 1, 1]], // S
+  [[0, 1, 1], [1, 1, 0]], // Z
+  [[1, 0, 0], [1, 1, 1]], // J
+  [[0, 0, 1], [1, 1, 1]] // L
+];
+
+let grid = [];
+let currentPiece;
+let dropTime = 0;
+let dropInterval = 500;
+let cursors;
+
+function preload() {}
+
+function create() {
+  this.graphics = this.add.graphics();
+  cursors = this.input.keyboard.createCursorKeys();
+
+  // Init grid
+  for (let y = 0; y < ROWS; y++) {
+    grid[y] = [];
+    for (let x = 0; x < COLS; x++) {
+      grid[y][x] = 0;
+    }
+  }
+
+  spawnPiece();
+}
+
+function update(time, delta) {
+  this.graphics.clear();
+  drawGrid(this);
+
+  if (Phaser.Input.Keyboard.JustDown(cursors.left)) movePiece(-1);
+  if (Phaser.Input.Keyboard.JustDown(cursors.right)) movePiece(1);
+  if (Phaser.Input.Keyboard.JustDown(cursors.down)) dropPiece();
+  if (Phaser.Input.Keyboard.JustDown(cursors.up)) rotatePiece();
+
+  dropTime += delta;
+  if (dropTime > dropInterval) {
+    dropTime = 0;
+    dropPiece();
+  }
+}
+
+function drawGrid(scene) {
+  scene.graphics.fillStyle(0x444444);
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      if (grid[y][x]) {
+        scene.graphics.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+      }
+    }
+  }
+
+  scene.graphics.fillStyle(0xff0000);
+  for (let y = 0; y < currentPiece.shape.length; y++) {
+    for (let x = 0; x < currentPiece.shape[y].length; x++) {
+      if (currentPiece.shape[y][x]) {
+        scene.graphics.fillRect((currentPiece.x + x) * BLOCK_SIZE, (currentPiece.y + y) * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+      }
+    }
+  }
+}
+
+function spawnPiece() {
+  const index = Math.floor(Math.random() * SHAPES.length);
+  currentPiece = {
+    shape: SHAPES[index],
+    x: 3,
+    y: 0
+  };
+}
+
+function movePiece(dir) {
+  currentPiece.x += dir;
+  if (collides()) currentPiece.x -= dir;
+}
+
+function rotatePiece() {
+  const oldShape = currentPiece.shape;
+  currentPiece.shape = rotateMatrix(currentPiece.shape);
+  if (collides()) currentPiece.shape = oldShape;
+}
+
+function dropPiece() {
+  currentPiece.y++;
+  if (collides()) {
+    currentPiece.y--;
+    mergePiece();
+    clearLines();
+    spawnPiece();
+    if (collides()) {
+      alert('Partie terminée');
+      location.reload();
+    }
+  }
+}
+
+function mergePiece() {
+  const { shape, x: px, y: py } = currentPiece;
+  for (let y = 0; y < shape.length; y++) {
+    for (let x = 0; x < shape[y].length; x++) {
+      if (shape[y][x]) {
+        grid[py + y][px + x] = 1;
+      }
+    }
+  }
+}
+
+function clearLines() {
+  for (let y = ROWS - 1; y >= 0; y--) {
+    if (grid[y].every(cell => cell)) {
+      grid.splice(y, 1);
+      grid.unshift(new Array(COLS).fill(0));
+      y++;
+    }
+  }
+}
+
+function collides() {
+  const { shape, x: px, y: py } = currentPiece;
+  for (let y = 0; y < shape.length; y++) {
+    for (let x = 0; x < shape[y].length; x++) {
+      if (
+        shape[y][x] &&
+        (grid[py + y] && grid[py + y][px + x]) !== 0
+      ) return true;
+      if (
+        shape[y][x] &&
+        (px + x < 0 || px + x >= COLS || py + y >= ROWS)
+      ) return true;
+    }
+  }
+  return false;
+}
+
+function rotateMatrix(matrix) {
+  return matrix[0].map((_, i) => matrix.map(row => row[i])).reverse();
+}
+✅ Résultat
+Le jeu Tetris s’affiche dans le cadre #tetris-game.
+
+Contrôles clavier :
+
+Flèche gauche/droite : déplacement
+
+Flèche bas : descente rapide
+
+Flèche haut : rotation
+
+Game over : message + rechargement
+
+Souhaites-tu maintenant :
+
+Un fichier ZIP contenant le frontend complet prêt à lancer ?
+
+Le fichier main.js pour gérer login + CRUD utilisateur connecté au backend ?
+
+Une amélioration (niveau, score, musique, etc.) du jeu Tetris ?
+
+Vous avez dit :
+Le fichier main.js pour gérer login + CRUD utilisateur connecté au backend 
+ChatGPT a dit :
+Voici un fichier main.js fonctionnel pour gérer la connexion (login), la déconnexion, et les opérations CRUD des utilisateurs à partir de l’interface HTML que tu as déjà.
+
+⚠️ Il suppose que ton backend Node.js (Express + JWT) est accessible à l’URL http://localhost:3000/api/users.
+
+✅ Fichier main.js
+Place-le dans frontend/main.js
+
+const API_URL = "http://localhost:3000/api/users";
+
+function login() {
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
+
+  fetch(`${API_URL}/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        showUserPanel();
+        fetchUsers();
+      } else {
+        alert(data.message || "Échec de connexion.");
+      }
+    });
+}
+
+function logout() {
+  localStorage.removeItem("token");
+  document.getElementById("user-actions").style.display = "none";
+}
+
+function showUserPanel() {
+  document.getElementById("user-actions").style.display = "block";
+}
+
+function createUser() {
+  const username = document.getElementById("new-username").value.trim();
+  const password = document.getElementById("new-password").value.trim();
+  const role = document.getElementById("new-role").value;
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + localStorage.getItem("token"),
+    },
+    body: JSON.stringify({ username, password, role }),
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.id) {
+        fetchUsers();
+        document.getElementById("new-username").value = "";
+        document.getElementById("new-password").value = "";
+      } else {
+        alert(data.message || "Erreur lors de la création.");
+      }
+    });
+}
+
+function fetchUsers() {
+  fetch(API_URL, {
+    headers: {
+      Authorization: "Bearer " + localStorage.getItem("token"),
+    },
+  })
+    .then(res => res.json())
+    .then(users => {
+      const tbody = document.querySelector("#user-table tbody");
+      tbody.innerHTML = "";
+
+      users.forEach(user => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${user.id}</td>
+          <td>${user.username}</td>
+          <td>${user.role}</td>
+          <td>
+            <button onclick="deleteUser(${user.id})">Supprimer</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+    });
+}
+
+function deleteUser(id) {
+  if (!confirm("Confirmer la suppression ?")) return;
+
+  fetch(`${API_URL}/${id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: "Bearer " + localStorage.getItem("token"),
+    },
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        fetchUsers();
+      } else {
+        alert("Erreur lors de la suppression.");
+      }
+    });
+}
+📌 Fonctionnalités incluses
+Fonction	Description
+login()	Authentifie l’utilisateur avec nom + mot de passe
+logout()	Supprime le token du localStorage
+createUser()	Crée un nouvel utilisateur via l’API (admin only)
+fetchUsers()	Récupère tous les utilisateurs
+deleteUser(id)	Supprime un utilisateur
+showUserPanel()	Affiche la partie CRUD si connecté
+✅ Routes Backend attendues
+Voici les routes backend que ce main.js attend (en Node.js / Express) :
+
+Méthode	URL	Action
+POST	/api/users/login	Authentifie et retourne JWT
+GET	/api/users	Liste des utilisateurs
+POST	/api/users	Crée un utilisateur
+DELETE	/api/users/:id	Supprime un utilisateur
+Souhaites-tu que je t’envoie maintenant :
+
+Le backend Express complet correspondant à ce frontend ?
+
+Ou un fichier .sql d’importation de la table users pour pgAdmin ?
+
+
+Un fichier ZIP contenant le frontend complet prêt à lancer 
+
+
+Aucun fichier choisiAucun fichier choisi
+ChatGPT peut commettre des erreurs. Il est recommandé de vérifier les informations importantes. Voir les préférences en matière de cookies.
+
+___________________________________________________
+
