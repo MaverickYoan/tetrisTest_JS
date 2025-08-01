@@ -1,0 +1,4 @@
+<!-- Ajout dans votre index.html -->
+<div id="tetris-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+<script src="/static/tetris.js"></script> <!-- Votre code Tetris ici -->

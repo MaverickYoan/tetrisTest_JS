@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestion Utilisateurs + Tetris</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="tetris/phaser.min.js"></script>
+  <script defer src="backend/main.js"></script>
+  <script defer src="tetris/tetris.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 30%;
+      background-color: #f4f4f4;
+      padding: 20px;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      overflow-y: auto;
+    }
+
+    .main-content {
+      flex-grow: 1;
+      background-color: #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    input,
+    button {
+      margin: 5px 0;
+      padding: 8px;
+      width: 100%;
+    }
+
+    .user-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .user-table th,
+    .user-table td {
+      padding: 6px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+
+    #tetris-game canvas {
+      border: 4px solid #fff;
+      box-shadow: 0 0 20px #0f0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Sidebar (CRUD / Auth) -->
+  <div class="sidebar">
+    <h2>Connexion</h2>
+    <input type="text" id="username" placeholder="Nom d'utilisateur" />
+    <input type="password" id="password" placeholder="Mot de passe" />
+    <button onclick="login()">Se connecter</button>
+    <button onclick="logout()">Se déconnecter</button>
+
+    <div id="user-actions" style="display:none;">
+      <h3>Ajouter un utilisateur</h3>
+      <input type="text" id="new-username" placeholder="Nom" />
+      <input type="password" id="new-password" placeholder="Mot de passe" />
+      <select id="new-role">
+        <option value="user">Utilisateur</option>
+        <option value="admin">Admin</option>
+      </select>
+      <button onclick="createUser()">Ajouter</button>
+
+      <h3>Liste des utilisateurs</h3>
+      <table class="user-table" id="user-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nom</th>
+            <th>Rôle</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tetris Frame -->
+  <div class="main-content">
+    <div id="tetris-game"></div>
+  </div>
+  <script src="tetris/phaser.min.js"></script>
+  <script src="backend/main.js"></script>
+
+  <div id="tetris-game"></div>
+  <div id="tetris-container"></div>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+  <script src="tetris/tetris.js">
+    // Données simulées pour remplacer la base de données PostgreSQL
+    let users = [
+      {
+        id: 1,
+        name: 'Administrateur Principal',
+        email: 'admin@example.com',
+        password: 'admin123',
+        role: 'admin',
+        createdAt: new Date('2024-01-15').toLocaleDateString()
+      },
+      {
+        id: 2,
+        name: 'Utilisateur Test',
+        email: 'user@example.com',
+        password: 'user123',
+        role: 'user',
+        createdAt: new Date('2024-02-20').toLocaleDateString()
+      },
+      {
+        id: 3,
+        name: 'Marie Martin',
+        email: 'marie.martin@email.com',
+        password: 'marie123',
+        role: 'user',
+        createdAt: new Date('2024-03-10').toLocaleDateString()
+      }
+    ];
+
+    let currentUser = null;
+    let editingUserId = null;
+    let gameStats = { totalGames: 0 };
+
+    // Variables du jeu Tetris
+    let game = null;
+    let gameScore = 0;
+    let isPaused = false;
+
+    // Fonctions d'authentification
+    function login() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+
+      const user = users.find(u => u.email === email && u.password === password);
+
+      if (user) {
+        currentUser = user;
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+
+        // Mise à jour des informations utilisateur
+        document.getElementById('currentUserName').textContent = user.name;
+        const roleSpan = document.getElementById('currentUserRole');
+        roleSpan.textContent = user.role.toUpperCase();
+        roleSpan.className = `role-badge role-${user.role}`;
+
+        // Affichage conditionnel selon le rôle
+        if (user.role !== 'admin') {
+          document.getElementById('userForm').classList.add('hidden');
+          document.getElementById('usersTableContainer').classList.add('hidden');
+          document.getElementById('adminStats').classList.add('hidden');
+        } else {
+          loadUsers();
+          updateStats();
+        }
+
+        // Initialisation du jeu
+        initTetris();
+      } else {
+        alert('Email ou mot de passe incorrect!');
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('mainApp').classList.add('hidden');
+      document.getElementById('loginEmail').value = '';
+      document.getElementById('loginPassword').value = '';
+
+      // Nettoyage du jeu
+      if (game) {
+        game.destroy();
+        game = null;
+      }
+    }
+
+    // Fonctions CRUD
+    function addUser() {
+      const name = document.getElementById('userName').value;
+      const email = document.getElementById('userEmail').value;
+      const password = document.getElementById('userPassword').value;
+      const role = document.getElementById('userRole').value;
+
+      if (!name || !email || !password) {
+        alert('Veuillez remplir tous les champs!');
+        return;
+      }
+
+      // Vérification email unique
+      if (users.find(u => u.email === email)) {
+        alert('Cet email existe déjà!');
+        return;
+      }
+
+      const newUser = {
+        id: Math.max(...users.map(u => u.id)) + 1,
+        name,
+        email,
+        password,
+        role,
+        createdAt: new Date().toLocaleDateString()
+      };
+
+      users.push(newUser);
+      clearForm();
+      loadUsers();
+      updateStats();
+
+      alert('Utilisateur ajouté avec succès!');
+    }
+
+    function editUser(id) {
+      const user = users.find(u => u.id === id);
+      if (user) {
+        document.getElementById('userName').value = user.name;
+        document.getElementById('userEmail').value = user.email;
+        document.getElementById('userPassword').value = user.password;
+        document.getElementById('userRole').value = user.role;
+
+        editingUserId = id;
+        document.getElementById('updateBtn').classList.remove('hidden');
+        document.querySelector('.btn-success').classList.add('hidden');
+      }
+    }
+
+    function updateUser() {
+      const name = document.getElementById('userName').value;
+      const email = document.getElementById('userEmail').value;
+      const password = document.getElementById('userPassword').value;
+      const role = document.getElementById('userRole').value;
+
+      if (!name || !email || !password) {
+        alert('Veuillez remplir tous les champs!');
+        return;
+      }
+
+      const userIndex = users.findIndex(u => u.id === editingUserId);
+      if (userIndex !== -1) {
+        users[userIndex] = {
+          ...users[userIndex],
+          name,
+          email,
+          password,
+          role
+        };
+
+        clearForm();
+        loadUsers();
+        updateStats();
+
+        alert('Utilisateur modifié avec succès!');
+      }
+    }
+
+    function deleteUser(id) {
+      if (confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur?')) {
+        users = users.filter(u => u.id !== id);
+        loadUsers();
+        updateStats();
+        alert('Utilisateur supprimé avec succès!');
+      }
+    }
+
+    function cancelEdit() {
+      clearForm();
+    }
+
+    function clearForm() {
+      document.getElementById('userName').value = '';
+      document.getElementById('userEmail').value = '';
+      document.getElementById('userPassword').value = '';
+      document.getElementById('userRole').value = 'user';
+
+      editingUserId = null;
+      document.getElementById('updateBtn').classList.add('hidden');
+      document.querySelector('.btn-success').classList.remove('hidden');
+    }
+
+    function loadUsers() {
+      const tbody = document.getElementById('usersTableBody');
+      tbody.innerHTML = '';
+
+      users.forEach(user => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td><span class="role-badge role-${user.role}">${user.role.toUpperCase()}</span></td>
+                    <td>${user.createdAt}</td>
+                    <td>
+                        <button class="btn btn-warning" onclick="editUser(${user.id})" style="padding: 8px 12px; margin-right: 5px;">✏️</button>
+                        <button class="btn btn-danger" onclick="deleteUser(${user.id})" style="padding: 8px 12px;">🗑️</button>
+                    </td>
+                `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function updateStats() {
+      document.getElementById('totalUsers').textContent = users.filter(u => u.role === 'user').length;
+      document.getElementById('totalAdmins').textContent = users.filter(u => u.role === 'admin').length;
+      document.getElementById('totalGames').textContent = gameStats.totalGames;
+    }
+
+    // Configuration et logique du jeu Tetris
+    function initTetris() {
+      const config = {
+        type: Phaser.AUTO,
+        width: 300,
+        height: 700,
+        parent: 'tetrisGame',
+        backgroundColor: '#2c3e50',
+        scene: {
+          preload: preload,
+          create: create,
+          update: update
+        }
+      };
+
+      game = new Phaser.Game(config);
+    }
+
+    // Variables globales du jeu
+    let grid = [];
+    let currentPiece = null;
+    let nextPiece = null;
+    let graphics = null;
+    let cursors = null;
+    let dropTimer = 0;
+    let dropInterval = 500;
+
+    const GRID_WIDTH = 10;
+    const GRID_HEIGHT = 20;
+    const CELL_SIZE = 20;
+
+    const PIECES = [
+      { shape: [[1, 1, 1, 1]], color: 0x00ffff }, // I
+      { shape: [[1, 1], [1, 1]], color: 0xffff00 }, // O
+      { shape: [[1, 1, 1], [0, 1, 0]], color: 0x800080 }, // T
+      { shape: [[1, 1, 0], [0, 1, 1]], color: 0x00ff00 }, // S
+      { shape: [[0, 1, 1], [1, 1, 0]], color: 0xff0000 }, // Z
+      { shape: [[1, 1, 1], [1, 0, 0]], color: 0xff8000 }, // L
+      { shape: [[1, 1, 1], [0, 0, 1]], color: 0x0000ff }  // J
+    ];
+
+    function preload() {
+      // Pas de ressources à charger
+    }
+
+    function create() {
+      // Initialisation de la grille
+      for (let y = 0; y < GRID_HEIGHT; y++) {
+        grid[y] = [];
+        for (let x = 0; x < GRID_WIDTH; x++) {
+          grid[y][x] = 0;
+        }
+      }
+
+      graphics = this.add.graphics();
+      cursors = this.input.keyboard.createCursorKeys();
+
+      // Ajout des contrôles supplémentaires
+      this.input.keyboard.on('keydown-SPACE', () => {
+        dropPiece();
+      });
+
+      spawnPiece();
+      gameScore = 0;
+      updateScoreDisplay();
+    }
+
+    function update(time, delta) {
+      if (isPaused || !currentPiece) return;
+
+      dropTimer += delta;
+      if (dropTimer >= dropInterval) {
+        movePiece(0, 1);
+        dropTimer = 0;
+      }
+
+      // Contrôles
+      if (Phaser.Input.Keyboard.JustDown(cursors.left)) {
+        movePiece(-1, 0);
+      }
+      if (Phaser.Input.Keyboard.JustDown(cursors.right)) {
+        movePiece(1, 0);
+      }
+      if (Phaser.Input.Keyboard.JustDown(cursors.down)) {
+        movePiece(0, 1);
+      }
+      if (Phaser.Input.Keyboard.JustDown(cursors.up)) {
+        rotatePiece();
+      }
+
+      drawGame();
+    }
+
+    function spawnPiece() {
+      const pieceTemplate = PIECES[Math.floor(Math.random() * PIECES.length)];
+      currentPiece = {
+        shape: pieceTemplate.shape.map(row => [...row]),
+        color: pieceTemplate.color,
+        x: Math.floor(GRID_WIDTH / 2) - Math.floor(pieceTemplate.shape[0].length / 2),
+        y: 0
+      };
+
+      if (isCollision(currentPiece.x, currentPiece.y, currentPiece.shape)) {
+        gameOver();
+      }
+    }
+
+    function movePiece(dx, dy) {
+      if (!currentPiece) return;
+
+      const newX = currentPiece.x + dx;
+      const newY = currentPiece.y + dy;
+
+      if (!isCollision(newX, newY, currentPiece.shape)) {
+        currentPiece.x = newX;
+        currentPiece.y = newY;
+      } else if (dy > 0) {
+        // La pièce ne peut plus descendre
+        placePiece();
+        clearLines();
+        spawnPiece();
+      }
+    }
+
+    function rotatePiece() {
+      if (!currentPiece) return;
+
+      const rotated = rotateMatrix(currentPiece.shape);
+      if (!isCollision(currentPiece.x, currentPiece.y, rotated)) {
+        currentPiece.shape = rotated;
+      }
+    }
+
+    function rotateMatrix(matrix) {
+      const rows = matrix.length;
+      const cols = matrix[0].length;
+      const rotated = [];
+
+      for (let i = 0; i < cols; i++) {
+        rotated[i] = [];
+        for (let j = 0; j < rows; j++) {
+          rotated[i][j] = matrix[rows - 1 - j][i];
+        }
+      }
+
+      return rotated;
+    }
+
+    function isCollision(x, y, shape) {
+      for (let py = 0; py < shape.length; py++) {
+        for (let px = 0; px < shape[py].length; px++) {
+          if (shape[py][px]) {
+            const newX = x + px;
+            const newY = y + py;
+
+            if (newX < 0 || newX >= GRID_WIDTH || newY >= GRID_HEIGHT) {
+              return true;
+            }
+
+            if (newY >= 0 && grid[newY][newX]) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    function placePiece() {
+      if (!currentPiece) return;
+
+      for (let py = 0; py < currentPiece.shape.length; py++) {
+        for (let px = 0; px < currentPiece.shape[py].length; px++) {
+          if (currentPiece.shape[py][px]) {
+            const gridX = currentPiece.x + px;
+            const gridY = currentPiece.y + py;
+            if (gridY >= 0) {
+              grid[gridY][gridX] = currentPiece.color;
+            }
+          }
+        }
+      }
+    }
+
+    function clearLines() {
+      let linesCleared = 0;
+      for (let y = GRID_HEIGHT - 1; y >= 0; y--) {
+        if (grid[y].every(cell => cell !== 0)) {
+          grid.splice(y, 1);
+          grid.unshift(new Array(GRID_WIDTH).fill(0));
+          linesCleared++;
+          y++; // Revérifier la même ligne
+        }
+      }
+
+      if (linesCleared > 0) {
+        gameScore += linesCleared * 100 * linesCleared; // Bonus pour lignes multiples
+        updateScoreDisplay();
+
+        // Augmentation de la vitesse
+        dropInterval = Math.max(100, dropInterval - linesCleared * 20);
+      }
+    }
+
+    function dropPiece() {
+      if (!currentPiece) return;
+      while (!isCollision(currentPiece.x, currentPiece.y + 1, currentPiece.shape)) {
+        currentPiece.y++;
+      }
+      gameScore += 2; // Bonus pour chute rapide
+      updateScoreDisplay();
+    }
+
+    function drawGame() {
+      if (!graphics) return;
+
+      graphics.clear();
+
+      // Dessiner la grille
+      for (let y = 0; y < GRID_HEIGHT; y++) {
+        for (let x = 0; x < GRID_WIDTH; x++) {
+          const color = grid[y][x] || 0x34495e;
+          graphics.fillStyle(color);
+          graphics.fillRect(x * CELL_SIZE + 30, y * CELL_SIZE + 20, CELL_SIZE - 1, CELL_SIZE - 1);
+        }
+      }
+
+      // Dessiner la pièce actuelle
+      if (currentPiece) {
+        graphics.fillStyle(currentPiece.color);
+        for (let py = 0; py < currentPiece.shape.length; py++) {
+          for (let px = 0; px < currentPiece.shape[py].length; px++) {
+            if (currentPiece.shape[py][px]) {
+              const drawX = (currentPiece.x + px) * CELL_SIZE + 30;
+              const drawY = (currentPiece.y + py) * CELL_SIZE + 20;
+              graphics.fillRect(drawX, drawY, CELL_SIZE - 1, CELL_SIZE - 1);
+            }
+          }
+        }
+      }
+
+      // Bordure
+      graphics.lineStyle(2, 0xffffff);
+      graphics.strokeRect(30, 20, GRID_WIDTH * CELL_SIZE, GRID_HEIGHT * CELL_SIZE);
+    }
+
+    function updateScoreDisplay() {
+      document.getElementById('gameScore').textContent = gameScore;
+    }
+
+    function startNewGame() {
+      if (game && game.scene.scenes[0]) {
+        game.scene.scenes[0].scene.restart();
+        gameStats.totalGames++;
+        if (currentUser && currentUser.role === 'admin') {
+          updateStats();
+        }
+        isPaused = false;
+      }
+    }
+
+    function pauseGame() {
+      isPaused = !isPaused;
+      const btn = event.target;
+      btn.textContent = isPaused ? '▶️ Reprendre' : '⏸️ Pause';
+    }
+
+    function gameOver() {
+      alert(`Score final: ${gameScore}`);
+      startNewGame();
+    }
+
+    // Initialisation au chargement de la page
+    window.addEventListener('load', function () {
+      // Simulation d'une connexion à la base de données PostgreSQL
+      console.log('Connexion simulée à PostgreSQL - Tables: users, game_stats');
+      console.log('Données chargées depuis pgAdmin simulation');
+    });
+  </script> <!-- Votre code Tetris ici -->
+</body>
+
+</html>
